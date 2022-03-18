@@ -1,7 +1,9 @@
 #include <LiquidCrystal.h>
+
+//Pino LCD
 LiquidCrystal lcd (10,9,8,7,6,5);
 
-#define PESO_MAXIMO 180.0
+#define PESO_MAXIMO 1000.0
 
 double obter_peso();
 double obter_umd();
@@ -22,6 +24,7 @@ const int verde = 4;
 const int motor = 13;
 
 void setup() {
+  
   	Serial.begin(9600);
   
   	// Definir pinos de saída
@@ -39,23 +42,12 @@ void setup() {
 }
 
 void loop() {
-  	// Limpa o display LCD
-  	lcd.clear();
-  
-  	// Obtem o peso e exibe no display LCD
-  	double peso = obter_peso();
-  	lcd.setCursor(0,0);
-  	lcd.print("PESO: ");
-  	lcd.print(peso);
-	
-  	// Obtem a umidade e exibe no display LCD
-  	double umidade = obter_umd();
-  	lcd.setCursor(0,1);
-  	lcd.print("UMD (%): ");
-  	lcd.print(umidade);
   
   	// Efetua o controle da irrigação
+  	double peso = obter_peso();
+  	double umidade = obter_umd();
   	controla_irrigacao(peso, umidade);
+  	
   
   	// Aguarda 200ms
   	delay(200);
@@ -77,8 +69,72 @@ double obter_umd() {
 
 void controla_irrigacao(double peso, double umidade) {
   	if(peso > 50) {
-        if(umidade > 40) {
+        if(umidade > 20) {
           	// AMARELO - Umidade registrada maior que 40%
+          	digitalWrite(verde, HIGH);
+          	digitalWrite(vermelho, HIGH);
+    		digitalWrite(azul, LOW);
+          
+          	// Obtem o peso e exibe no display LCD
+  			double peso = obter_peso();
+  			lcd.setCursor(0,0);
+  			lcd.print("PESO: ");
+  			lcd.print(peso);
+
+  			// Obtem a umidade e exibe no display LCD
+  			double umidade = obter_umd();
+  			lcd.setCursor(0,1);
+  			lcd.print("UMD (%): ");
+  			lcd.print(umidade);
+          
+            if(umidade > 60) {
+              	// VERDE - Umidade registrada maior que 60%
+          		digitalWrite(vermelho, LOW);
+            }
+          
+            //Desligar sistema de irrigação
+            digitalWrite(motor, LOW);
+            Serial.println("Irrigação parada...");
+          
+        }
+        else {
+            //VERMELHO - Umidade registrada menor ou igual a 40%
+            digitalWrite(vermelho, HIGH);
+            digitalWrite(azul, LOW);
+            digitalWrite(verde, LOW);
+
+            //Acionar sistema de irrigação
+            digitalWrite(motor, HIGH);
+            Serial.println("Irrigando...");
+          	// Aviso de inicio de irrigação display LCD
+      		lcd.clear();
+          	lcd.setCursor(0,1);
+  	  		lcd.print("Irrigando...");
+      
+        }
+    }
+    else {
+      // BRANCO - Peso insuficiente
+      digitalWrite(vermelho, HIGH);
+      digitalWrite(verde, HIGH);
+      digitalWrite(azul, HIGH);
+      
+      //Desligar sistema de irrigação
+      digitalWrite(motor, LOW);
+      Serial.println("Peso insuficiente...");
+      
+      // Aviso de falta de agua no reservatorio de irrigação display LCD
+      lcd.clear();
+      lcd.setCursor(0,1);
+  	  lcd.print("sem agua");
+      
+    }
+}
+
+void visualizacao_lcd (double peso, double umidade){
+	if(peso > 50) {
+        if(umidade > 40) {
+          	//Umidade registrada maior que 40%, lcd mostra
           	digitalWrite(verde, HIGH);
           	digitalWrite(vermelho, HIGH);
     		digitalWrite(azul, LOW);
@@ -113,4 +169,5 @@ void controla_irrigacao(double peso, double umidade) {
       digitalWrite(motor, LOW);
       Serial.println("Peso insuficiente...");
     }
+
 }
